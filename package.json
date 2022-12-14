@@ -1,0 +1,21 @@
+{
+  "name": "err",
+  "version": "0.1.0",
+  "description": "general error handling fn for server and client sides",
+  "author": "Ben P.P. Tung",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://repo.tacol.biz/self/err.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test"
+  },
+  "eslintIgnore": [],
+  "devDependencies": {
+    "eslint": "8.23.0",
+    "eslint-config-less": "github:benpptung/eslint-config-less",
+    "eslint-plugin-node": "11.1.0"
+  }
+}
