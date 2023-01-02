@@ -16,6 +16,8 @@
   "devDependencies": {
     "eslint": "8.23.0",
     "eslint-config-less": "github:benpptung/eslint-config-less",
-    "eslint-plugin-node": "11.1.0"
+    "eslint-plugin-node": "11.1.0",
+    "expect.js": "^0.3.1",
+    "mocha": "^10.2.0"
   }
 }
