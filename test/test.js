@@ -22,3 +22,8 @@ describe('Err()', function() {
     expect(err.actions[0]).to.be(act)
   })
 })
+
+describe('OnErr', function() {
+
+  it('wrap Error with additional information')
+})
