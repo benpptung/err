@@ -16,6 +16,9 @@ function Err(msg, original, props) {
   if (typeof msg === 'string' && msg.length) {
     er.msgs.push(msg)
   }
+
+  er.m = bind_message_setter(er)
+
   er.original = Object.assign({}, original)
 
   // safe props
@@ -54,7 +57,11 @@ function OnErr(err, original, props) {
   // ensure msgs
   if (!Array.isArray(err.msgs)) {
     err.msgs = []
+    if (typeof err.message === "string" && err.message.length) {
+      err.msgs.push(err.message)
+    }
   }
+  err.m = bind_message_setter(err)
 
   // ensure original
   if (!err.original || Object(err.original) !== err.original) {
@@ -96,3 +103,12 @@ function build_safe_props(props) {
 }
 
 export { Err, OnErr }
+
+function bind_message_setter(er) {
+  return function(message) {
+    if (typeof message === 'string' && message.length) {
+      er.msgs.push(message)
+    }
+    return er
+  }
+}
