@@ -1,29 +1,63 @@
-'use strict'
+import expect from "expect.js"
+import { Err, OnErr } from "../src/err.js"
 
-const Err = require('../lib/index').Err
-const expect = require('expect.js')
+/* eslint-disable no-undef */
 
-describe('Err()', function() {
+describe("Err", function () {
 
-  it('return a wrapped Error object', function() {
-
-    var res
-    var need = 'blah'
-    var act = 3
-    var err = Err('no message', {res, need}, act)
-
-    expect(err).to.be.a(Error)
-    expect(err.message).to.be('no message')
-    expect(err.messages[0]).to.be('no message')
-    expect(err.messages.length).to.be(1)
-    expect(err.original.res).to.be(res)
-    expect(err.original.need).to.be(need)
-    expect(err.actions.length).to.be(1)
-    expect(err.actions[0]).to.be(act)
+  it("creates an Error instance", function () {
+    const e = Err("fail")
+    expect(e).to.be.an(Error)
   })
+
+  it("stores message into msgs[]", function () {
+    const e = Err("invalid data")
+    expect(e.msgs).to.eql(["invalid data"])
+  })
+
+  it("clones original context", function () {
+    const ctx = { a: 1 }
+    const e = Err("x", ctx)
+    expect(e.original).to.eql({ a: 1 })
+    expect(e.original).not.to.be(ctx) // cloned
+  })
+
+  it("attaches safe props", function () {
+    const e = Err("x", null, { code: 123, detail: "abc" })
+    expect(e.code).to.be(123)
+    expect(e.detail).to.be("abc")
+  })
+
 })
 
-describe('OnErr', function() {
 
-  it('wrap Error with additional information')
+describe("OnErr", function () {
+
+  it("wraps non-Error inputs into Error", function () {
+    const e = OnErr({ a: 1 }, { b: 2 })
+    expect(e).to.be.an(Error)
+    expect(e.original).to.eql({ b: 2 })
+  })
+
+  it("preserves and merges original context", function () {
+    const e1 = Err("fail", { a: 1 })
+    const e2 = OnErr(e1, { b: 2 })
+    expect(e2.original).to.eql({ b: 2, a: 1 }) // new fills, old keeps
+  })
+
+  it("preserves msgs array", function () {
+    const e1 = Err("fail")
+    e1.msgs.push("layer 2")
+
+    const e2 = OnErr(e1, { step: 3 })
+    expect(e2.msgs).to.eql(["fail", "layer 2"])
+  })
+
+  it("adds safe props", function () {
+    const e1 = Err("x")
+    const e2 = OnErr(e1, null, { code: "E_X", retry: 1 })
+    expect(e2.code).to.be("E_X")
+    expect(e2.retry).to.be(1)
+  })
+
 })

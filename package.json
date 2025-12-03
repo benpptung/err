@@ -1,23 +1,34 @@
 {
   "name": "err",
-  "version": "0.1.0",
-  "description": "general error handling fn for server and client sides",
+  "version": "1.0.0",
+  "description": "A context-rich, chain-friendly Error replacement with persistent debugging information.",  
+  "type": "module",
   "author": "Ben P.P. Tung",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://repo.tacol.biz/self/err.git"
+    "url": "https://github.com/benpptung/err.git"
   },
-  "main": "index.js",
+  "exports": {
+    ".": "./src/err.js"
+  },
   "scripts": {
-    "test": "mocha test"
+    "test": "mocha"
   },
-  "eslintIgnore": [],
   "devDependencies": {
-    "eslint": "8.23.0",
-    "eslint-config-less": "github:benpptung/eslint-config-less",
-    "eslint-plugin-node": "11.1.0",
+    "eslint": "9.39.1",
     "expect.js": "^0.3.1",
     "mocha": "^10.2.0"
-  }
+  },  
+  "keywords": [
+    "error",
+    "err",
+    "exception",
+    "context",
+    "debug",
+    "throw",
+    "logger",
+    "error-handling"
+  ],
+  "types": "./src/err.d.ts"
 }
