@@ -13,7 +13,8 @@
     ".": "./src/err.js"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "prepare": "true"
   },
   "devDependencies": {
     "eslint": "9.39.1",
