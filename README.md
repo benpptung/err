@@ -105,16 +105,16 @@ Result:
 ```js
 import { Err, OnErr } from "err"
 
-function loadCast(file) {
+function loadData(file) {
   try {
     const payload = JSON.parse(fs.readFileSync(file, "utf8"))
     if (Object(payload) !== payload) {
-      throw Err('invalid payload', { payload }) // what the payload we got???
+      throw Err('invalid payload', { payload }) // what the payload did we got???
     }
     return payload
 
   } catch (e) {
-    throw OnErr(e, { file })
+    throw OnErr(e, { file }) // always append context before rethrow
   }
 }
 ```
