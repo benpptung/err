@@ -72,7 +72,7 @@ All supported natively.
 
 ```sh
 pnpm add err
-# or npm/yarn
+
 ```
 
 ---
