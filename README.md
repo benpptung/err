@@ -107,7 +107,12 @@ import { Err, OnErr } from "err"
 
 function loadCast(file) {
   try {
-    return JSON.parse(fs.readFileSync(file, "utf8"))
+    const payload = JSON.parse(fs.readFileSync(file, "utf8"))
+    if (Object(payload) !== payload) {
+      throw Err('invalid payload', { payload }) // what the payload we got???
+    }
+    return payload
+
   } catch (e) {
     throw OnErr(e, { file })
   }
