@@ -81,7 +81,7 @@ Works in:
 ## Installation
 
 ```sh
-pnpm add err
+pnpm add benpptung/err
 ```
 
 ---
