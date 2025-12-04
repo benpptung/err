@@ -126,3 +126,83 @@ describe("Err.m()", function() {
   })
 
 })
+
+describe("OnErr.m() binding", function () {
+
+  it("binds m only once, even after multiple OnErr calls", function () {
+    const e1 = Err("fail")
+
+    const first_m = e1.m
+
+    // multiple wrapping
+    const e2 = OnErr(e1, { step: 1 })
+    const second_m = e2.m
+
+    const e3 = OnErr(e2, { step: 2 })
+    const third_m = e3.m
+
+    // all must be same function reference
+    expect(second_m).to.be(first_m)
+    expect(third_m).to.be(first_m)
+  })
+
+  it("binds m when error was plain Error, but only once", function () {
+    const plain = new Error("boom")
+
+    const e1 = OnErr(plain, { a: 1 })
+    const m1 = e1.m
+
+    const e2 = OnErr(e1, { b: 2 })
+    const m2 = e2.m
+
+    expect(typeof m1).to.be("function")
+    expect(m2).to.be(m1)  // same closure
+  })
+
+})
+
+describe("safe props protection", function () {
+
+  it("does NOT allow overwriting core props via Err props", function () {
+    const e = Err("x", null, {
+      message: "overwritten",
+      stack: "fake stack",
+      original: { fake: true },
+      msgs: ["fake"],
+      m: "not a function",
+      response: "fake",
+      name: "NewError",
+      cause: "fake"
+    })
+
+    expect(e.message).to.be("x")          // preserved
+    expect(e.msgs).to.eql(["x"])          // preserved
+    expect(typeof e.m).to.be("function")  // preserved
+    expect(e.original).to.eql({})         // preserved
+    expect(e.name).to.be("Error")         // native
+    expect(e.stack).to.be.a("string")     // native
+    expect(e.response).to.be(undefined)   // stripped
+  })
+
+  it("does NOT allow overwriting core props via OnErr props", function () {
+    const e0 = Err("base", { a: 1 })
+
+    const e = OnErr(e0, { b: 2 }, {
+      message: "fake",
+      stack: "fake",
+      msgs: ["bad"],
+      m: "danger",
+      original: { c: 3 },
+      name: "Overwritten",
+      response: "bad-response"
+    })
+
+    expect(e.message).to.be("base")
+    expect(e.msgs).to.eql(["base"])
+    expect(typeof e.m).to.be("function")
+    expect(e.original).to.eql({ b: 2, a: 1 })
+    expect(e.name).to.be("Error")
+    expect(e.response).to.be(undefined)
+  })
+
+})

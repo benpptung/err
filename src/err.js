@@ -54,14 +54,13 @@ function OnErr(err, original, props) {
     Object.assign(err, err_props)
   }
 
-  // ensure msgs
+  // ensure msgs 
   if (!Array.isArray(err.msgs)) {
     err.msgs = []
     if (typeof err.message === "string" && err.message.length) {
       err.msgs.push(err.message)
     }
   }
-  err.m = bind_message_setter(err)
 
   // ensure original
   if (!err.original || Object(err.original) !== err.original) {
@@ -70,6 +69,13 @@ function OnErr(err, original, props) {
 
   // merge original: old wins, new fills holes
   err.original = Object.assign({}, original, err.original)
+
+  // ensure err.m is function
+  if (typeof err.m !== 'function') {
+    if (err.hasOwnProperty('m')) err.original['err.m'] = err.m // reserve the err.m    
+    err.m = bind_message_setter(err)
+  }
+
 
   // merge safe props
   var safe_props = build_safe_props(props)
@@ -91,13 +97,14 @@ function build_safe_props(props) {
   var safe_props = Object.assign({}, props)
 
   // banned props to overwrite
+  delete safe_props.name
   delete safe_props.message
   delete safe_props.stack
+  delete safe_props.cause
   delete safe_props.original
-  delete safe_props.name
   delete safe_props.response
   delete safe_props.msgs
-  delete safe_props.cause
+  delete safe_props.m
 
   return safe_props
 }

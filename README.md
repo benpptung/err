@@ -96,7 +96,7 @@ import { Err } from "err"
 throw Err("invalid payload format", { payload  })
 ```
 
-Produces:
+Results:
 
 ```js
 {
@@ -127,6 +127,17 @@ function load_payload(file) {
   }
 }
 ```
+
+Results:
+```js
+{
+  message: <"invalid payload"|other message>, // might be `invalid payload` if Error was thrown by Err
+  msgs: [...],  // might have `invalid payload`, if Error was thrown by Err
+  original: { payload, file },
+  stack: "..."
+}
+```
+
 
 `OnErr` preserves:
 
