@@ -45,6 +45,12 @@ describe("OnErr", function() {
     expect(e2.original).to.eql({ b: 2, a: 1 }) // new fills, old keeps
   })
 
+  it("old context wins when keys conflict", function() {
+    const e1 = Err("fail", { a: 1 })
+    const e2 = OnErr(e1, { a: 999 }) // same key, different value
+    expect(e2.original.a).to.be(1)   // old wins
+  })
+
   it("preserves msgs array", function() {
     const e1 = Err("fail")
     e1.msgs.push("layer 2")
@@ -58,6 +64,12 @@ describe("OnErr", function() {
     const e2 = OnErr(e1, null, { code: "E_X", retry: 1 })
     expect(e2.code).to.be("E_X")
     expect(e2.retry).to.be(1)
+  })
+
+  it("new error_flags wins when keys conflict", function() {
+    const e1 = Err("x", null, { code: "OLD" })
+    const e2 = OnErr(e1, null, { code: "NEW" })
+    expect(e2.code).to.be("NEW") // new wins for coding
   })
 
 })

@@ -1,236 +1,239 @@
 # err
 
-A minimal, environment-agnostic enhancement to JavaScript’s native `Error`.
+A minimal, environment-agnostic enhancement to JavaScript's native `Error`.
 
-`Err` provides a simple way to attach **runtime context**, **custom properties**,  
-and **human-controlled message breadcrumbs**, while preserving the behavior,  
-simplicity, and semantics of a standard `Error`.
+`Err` provides a simple way to attach **runtime context**,
+**human-controlled message breadcrumbs**, and **error flags for program logic**
+(like `err.code`), while preserving the behavior, simplicity,
+and semantics of a standard `Error`.
 
-It does **not** modify prototypes.  
-It does **not** wrap stack traces.  
+It does **not** modify prototypes.
+It does **not** wrap stack traces.
 It remains fully compatible with all runtimes (Node, browser, Deno, Bun, Workers).
 
----
-
-## Why this exists
-
-Native JavaScript `Error` objects intentionally avoid storing application context  
-(objects, variables, state snapshots). This keeps the primitive lightweight,  
-but in real-world debugging it often leaves out crucial information.
-
-`Err` lets you attach this context ― explicitly and safely.
-
----
-
-## Features
-
-### ✔ Drop-in replacement for `new Error()`
-
-```js
-throw Err("invalid config")
-````
-
-### ✔ Attach runtime context
-
-```js
-throw Err("invalid config", { config })
-```
-
-### ✔ Add safe custom properties
-
-```js
-throw Err("request failed", null, { code: "E_HTTP", status: 400 })
-```
-
-### ✔ Chain-friendly error enrichment
-
-```js
-catch (e) {
-  throw OnErr(e, { filename })
-}
-```
-
-
-### ✔ `.m()` — append human-readable context during rethrows
-
-```js
-throw OnErr(e, { file }).m("failed to load data")
-```
-
-Result:
-
-```js
-err.msgs === [
-  ... previous messages ...,
-  "failed to load data"
-]
-```
-
-### ✔ No dependencies, no environment assumptions
-
-Works in:
-
-* Node.js
-* Browsers
-* Deno
-* Bun
-* Cloudflare Workers
-
----
+Designed for **logging** and **debugging** — when you read the log,
+you see everything in one place, not scattered across nested layers.
 
 ## Installation
 
 ```sh
+npm install benpptung/err
+# or
 pnpm add benpptung/err
+```
+
+---
+
+## The Three Core Dimensions
+
+This library handles three things:
+
+| Dimension | What it is | How to use |
+|-----------|-----------|------------|
+| **message_history** | How the error bubbled up | Add with `.m()` — inspired by `git commit -m` |
+| **context_dict** | State at each layer for debugging | Pass as 2nd parameter, must be `{ key: value }` |
+| **error_flags** | Flags for program logic | Pass as 3rd parameter, e.g., `{ code: 'E_TIMEOUT' }` |
+
+**`context_dict`** — for debugging. Any context you need, as key-value pairs.
+
+**`error_flags`** — for coding. Only use it when the caller needs `if (err.code === ...)` checks. Don't write it just for the sake of writing.
+
+---
+
+## Quick Start
+
+### Create an error
+
+```js
+import { Err } from 'err'
+
+throw Err('Invalid config', { config })
+```
+
+### Wrap and rethrow
+
+One line — context, message, done:
+
+```js
+import { OnErr } from 'err'
+
+catch (e) {
+  throw OnErr(e, { userId, file }).m('Failed to load user data')
+}
 ```
 
 ---
 
 ## Usage
 
-## Creating an error
+### Creating an error
 
 ```js
-import { Err } from "err"
+import { Err } from 'err'
 
-throw Err("invalid payload format", { payload  })
+throw Err('invalid payload format', { payload })
 ```
 
-Results:
+Result:
 
 ```js
 {
-  message: "invalid payload format",
-  msgs: ["invalid payload format"],
+  message: 'invalid payload format',
+  msgs: ['invalid payload format'],
   original: { payload },
-  stack: "..."
+  stack: '...'
 }
 ```
 
----
-
-## Enhancing an error during re-throws
+### Enhancing an error during rethrows
 
 ```js
-import { Err, OnErr } from "err"
+import { Err, OnErr } from 'err'
 
-function load_payload(file) {
+function loadPayload(file) {
   try {
-    const payload = JSON.parse(fs.readFileSync(file, "utf8"))
+    const payload = JSON.parse(fs.readFileSync(file, 'utf8'))
     if (Object(payload) !== payload) {
-      throw Err("invalid payload", { payload }) // what did we actually receive?
+      throw Err('invalid payload', { payload })
     }
     return payload
 
   } catch (e) {
-    throw OnErr(e, { file })
+    throw OnErr(e, { file }).m('load payload failed')
   }
 }
 ```
 
-Results:
+Result:
+
 ```js
 {
-  message: <"invalid payload"|other message>, // might be `invalid payload` if Error was thrown by Err
-  msgs: [...],  // might have `invalid payload`, if Error was thrown by Err
+  message: 'invalid payload',
+  msgs: ['invalid payload', 'load payload failed'],
   original: { payload, file },
-  stack: "..."
+  stack: '...'
 }
 ```
 
-
 `OnErr` preserves:
 
-* existing stack
-* existing message
-* existing msgs (history)
-* existing original
-* merges new context
-* merges safe custom props
+- existing `message`
+- existing `stack`
+- existing `msgs` (appends new ones)
+- existing `original` (merges new context, old values win)
 
+### Using `.m()` for message breadcrumbs
 
-
-## Using `.m()` — optional message history breadcrumbs
-
-`.m()` is an optional helper for appending human-readable messages into  
-`err.msgs[]`. It is **not required**, because `OnErr` has no message input  
-parameter — it only merges context and safe props.  
-Use `.m()` only when you want to record a specific logical step.
-
-### Example
-
-If the original error came from the runtime or a library:
+`.m()` appends a message to `err.msgs[]` without changing `err.message`.
 
 ```js
-new Error("invalid payload")
+// Deep in the call stack
+throw Err('ENOENT: file not found')
+
+// Middle layer
+catch (e) {
+  throw OnErr(e, { configPath }).m('failed to read config')
+}
+
+// Top layer
+catch (e) {
+  throw OnErr(e).m('app initialization failed')
+}
 ```
 
-
-You may first rethrow with additional context:
+Final `msgs`:
 
 ```js
-throw OnErr(e, { file })
+['ENOENT: file not found', 'failed to read config', 'app initialization failed']
 ```
-
-And at another stage, optionally add a breadcrumb message:
-
-```js
-throw OnErr(e, { other_variable }).m("load payload failed")
-```
-
-Final **message history**:
-
-```js
-err.msgs === [
-  "invalid payload",
-  "load payload failed"
-]
-```
-
-`.m()` does not modify `err.message`.  
-It only appends to `err.msgs[]` (the message history).
 
 ---
 
 ## API
 
-### `Err(msg?, original?, props?)`
+### `Err(message, [context_dict], [error_flags])`
 
-Creates an enhanced `Error` with:
+Creates an enhanced `Error`.
 
-* `msgs: string[]`
-* `original: object`
-* safe custom properties
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `message` | `string` | Error message |
+| `context_dict` | `object` | Debugging context (key-value pairs) |
+| `error_flags` | `object` | Rarely needed. Only when caller checks `err.code` |
 
-### `OnErr(err, original?, props?)`
+**`context_dict` must be an object** — it's a map of key-value pairs, not just values:
 
-Enhances an existing error:
+```js
+// Correct — key tells you what the value means
+throw Err('load failed', { file, userId })
+// → context: { file: '/data/x.json', userId: 123 }
 
-* ensures `err` is an `Error`
-* merges new context into `original`
-* preserves existing message, stack, original, msgs
-* merges safe custom properties
-* returns the same error instance
+// Wrong — just a value, no key
+throw Err('load failed', file)
+// → context: '/data/x.json'  ← what is this? no one knows when logging
+```
 
-### `.m(message: string)`
+Returns: `Error` with `msgs`, `original`, and `.m()` method.
 
-Appends a breadcrumb message into `err.msgs[]`.
+### `OnErr(err, [context_dict], [error_flags])`
 
-Returns the error instance for chaining.
+Wraps/enhances an existing error.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `err` | `any` | The error to wrap (will be converted to Err) |
+| `context_dict` | `object` | Additional context to merge (key-value pairs) |
+| `error_flags` | `object` | Rarely needed. Only when caller checks `err.code` |
+
+Returns: The same error instance, enhanced.
+
+- If `err` is not an `Error`, it becomes an Error
+- `msgs` is initialized from `err.message` if not present
+- `.m()` method is added if not present
+
+**Merge behavior — intentionally different:**
+
+| Parameter | Merge behavior | Reason |
+|-----------|---------------|--------|
+| `context_dict` | **old wins** | The original context (closer to the error source) is more valuable for debugging |
+| `error_flags` | **new wins** | Program logic may need to update flags as the error bubbles up |
+
+### `.m(message)`
+
+Appends a message to `err.msgs[]`.
+
+Returns: The error instance (for chaining).
+
+```js
+throw OnErr(e, { file }).m('load failed')
+```
+
+---
+
+## Protected Properties
+
+These properties cannot be overwritten via `error_flags`:
+
+| Property | Reason |
+|----------|--------|
+| `name`, `message`, `stack`, `cause` | Standard Error properties |
+| `msgs`, `original`, `m` | Core functionality of this library |
+| `response` | Protected for compatibility with HTTP libraries (superagent, axios) |
 
 ---
 
 ## Philosophy
 
-This library does **not** replace JavaScript’s error system.
-It only adds what real-world debugging often needs:
+This library does **not** replace JavaScript's error system.
+It adds what real-world debugging needs:
 
-* A place to store contextual debugging data
-* A consistent enriched error shape
-* Human-readable message history (breadcrumbs)
-* Minimalism, no prototypes modified, predictable behavior
+- **Flat, not nested** — everything in one place for easy logging
+- **Message history** — see how the error bubbled up
+- **Context accumulation** — see the state at each layer
+- **Coding-friendly** — `if (err.code === 'E_TIMEOUT')` just works
+- **Minimal and predictable** — no prototype hacks, no magic
 
-The goal is clarity — not complexity.
+The goal is **clarity** — not complexity.
 
 ---
 
