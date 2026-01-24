@@ -28,15 +28,33 @@ pnpm add benpptung/err
 
 This library handles three things:
 
-| Dimension | What it is | How to use |
-|-----------|-----------|------------|
-| **message_history** | How the error bubbled up | Add with `.m()` — inspired by `git commit -m` |
-| **context_dict** | State at each layer for debugging | Pass as 2nd parameter, must be `{ key: value }` |
-| **error_flags** | Flags for program logic | Pass as 3rd parameter, e.g., `{ code: 'E_TIMEOUT' }` |
+| Dimension | What it is | How to use | Behavior |
+|-----------|-----------|------------|----------|
+| **message_history** | How the error bubbled up | Add with `.m()` | append |
+| **context_dict** | State at each layer for debugging | Pass as 2nd parameter | merge, old wins |
+| **error_flags** | Flags for program logic | Pass as 3rd parameter | merge, new wins |
 
 **`context_dict`** — for debugging. Any context you need, as key-value pairs.
 
 **`error_flags`** — for coding. Only use it when the caller needs `if (err.code === ...)` checks. Don't write it just for the sake of writing.
+
+### Flat, not chained
+
+ES2022 `cause` creates a **linked chain** — each layer wraps the previous error. To see the full picture, you need to recursively walk through `err.cause.cause.cause...`. Context is scattered.
+
+This library takes a **flat** approach — all three dimensions accumulate into single, accessible structures:
+
+- `msgs[]` — one array, read top to bottom
+- `original{}` — one object, all context merged
+- `error_flags` — directly on `err`, latest values ready for checks
+
+**Trade-off:** flat means possible key conflicts when merging. Each dimension handles this differently:
+
+- **message_history** — no conflict, just **append**
+- **context_dict** — **old wins**, because the context closer to the error source is more valuable for debugging
+- **error_flags** — **new wins**, because the caller may need to update flags for branching logic
+
+When you `console.log(err)`, everything is right there. No recursion needed.
 
 ---
 
@@ -187,16 +205,9 @@ Wraps/enhances an existing error.
 
 Returns: The same error instance, enhanced.
 
-- If `err` is not an `Error`, it becomes an Error
+- If `err` is not an `Error`, it becomes one
 - `msgs` is initialized from `err.message` if not present
 - `.m()` method is added if not present
-
-**Merge behavior — intentionally different:**
-
-| Parameter | Merge behavior | Reason |
-|-----------|---------------|--------|
-| `context_dict` | **old wins** | The original context (closer to the error source) is more valuable for debugging |
-| `error_flags` | **new wins** | Program logic may need to update flags as the error bubbles up |
 
 ### `.m(message)`
 
