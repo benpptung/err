@@ -18,6 +18,7 @@ function Err(msg, context_dict, flag_dict) {
   }
 
   er.m = bind_message_setter(er)
+  er.f = bind_flag_setter(er)
 
   er.original = Object.assign({}, context_dict)
 
@@ -76,6 +77,11 @@ function OnErr(err, context_dict, flag_dict) {
     err.m = bind_message_setter(err)
   }
 
+  if (typeof err.f !== 'function') {
+    if (err.hasOwnProperty('f')) err.original['err.f'] = err.f 
+    err.f = bind_flag_setter(err)
+  }
+
 
   // merge flag_dict
   var safe_flags = build_safe_flags(flag_dict)
@@ -105,6 +111,7 @@ function build_safe_flags(flag_dict) {
   delete safe_flags.response
   delete safe_flags.msgs
   delete safe_flags.m
+  delete safe_flags.f
 
   return safe_flags
 }
@@ -117,5 +124,12 @@ function bind_message_setter(er) {
       er.msgs.push(message)
     }
     return er
+  }
+}
+
+function bind_flag_setter(er) {
+  return function(flag_dict) {
+    const safe_flags = build_safe_flags(flag_dict)
+    return Object.assign(er,safe_flags)
   }
 }

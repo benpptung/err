@@ -171,6 +171,154 @@ describe("OnErr.m() binding", function () {
     expect(m2).to.be(m1)  // same closure
   })
 
+  it("preserves existing err.m value in original when wrapping plain Error", function () {
+    const plain = new Error("boom")
+    plain.m = "some value"
+
+    const e = OnErr(plain, { a: 1 })
+
+    expect(typeof e.m).to.be("function")
+    expect(e.original["err.m"]).to.be("some value")
+  })
+
+})
+
+describe("Err.f()", function () {
+
+  it("attaches flag_dict to err and returns the same err", function () {
+    const e = Err("fail")
+    const result = e.f({ code: "E_FAIL", retry: true })
+
+    expect(result).to.be(e)
+    expect(e.code).to.be("E_FAIL")
+    expect(e.retry).to.be(true)
+  })
+
+  it("supports chaining multiple .f() calls", function () {
+    const e = Err("fail")
+      .f({ code: "E_1" })
+      .f({ detail: "more info" })
+
+    expect(e.code).to.be("E_1")
+    expect(e.detail).to.be("more info")
+  })
+
+  it("supports chaining with .m()", function () {
+    const e = Err("initial")
+      .m("second message")
+      .f({ code: "E_X" })
+      .m("third message")
+      .f({ status: 500 })
+
+    expect(e.msgs).to.eql(["initial", "second message", "third message"])
+    expect(e.code).to.be("E_X")
+    expect(e.status).to.be(500)
+  })
+
+  it("later .f() call overwrites earlier flags with same key", function () {
+    const e = Err("fail")
+      .f({ code: "OLD" })
+      .f({ code: "NEW" })
+
+    expect(e.code).to.be("NEW")
+  })
+
+  it("does not overwrite core props via .f()", function () {
+    const e = Err("base")
+    e.f({
+      message: "overwritten",
+      stack: "fake",
+      msgs: ["fake"],
+      m: "not a function",
+      f: "not a function",
+      original: { fake: true },
+      name: "FakeError",
+      cause: "fake",
+      response: "fake"
+    })
+
+    expect(e.message).to.be("base")
+    expect(e.msgs).to.eql(["base"])
+    expect(typeof e.m).to.be("function")
+    expect(typeof e.f).to.be("function")
+    expect(e.original).to.eql({})
+    expect(e.name).to.be("Error")
+    expect(e.response).to.be(undefined)
+  })
+
+  it("ignores non-object input", function () {
+    const e = Err("fail")
+    e.f(null)
+    e.f(undefined)
+    e.f("string")
+    e.f(123)
+
+    // should not throw, and err should remain intact
+    expect(e.message).to.be("fail")
+  })
+
+})
+
+describe("OnErr.f()", function () {
+
+  it("works after wrapping with OnErr", function () {
+    const e1 = Err("initial")
+    const e2 = OnErr(e1, { step: 1 }).f({ code: "E_WRAP" })
+
+    expect(e2).to.be(e1)
+    expect(e2.code).to.be("E_WRAP")
+  })
+
+  it("works when wrapping a plain Error", function () {
+    const plain = new Error("boom")
+    const e = OnErr(plain, { a: 1 }).f({ code: "E_PLAIN" })
+
+    expect(e.code).to.be("E_PLAIN")
+    expect(typeof e.f).to.be("function")
+  })
+
+})
+
+describe("OnErr.f() binding", function () {
+
+  it("binds f only once, even after multiple OnErr calls", function () {
+    const e1 = Err("fail")
+    const first_f = e1.f
+
+    const e2 = OnErr(e1, { step: 1 })
+    const second_f = e2.f
+
+    const e3 = OnErr(e2, { step: 2 })
+    const third_f = e3.f
+
+    // all must be same function reference
+    expect(second_f).to.be(first_f)
+    expect(third_f).to.be(first_f)
+  })
+
+  it("binds f when error was plain Error, but only once", function () {
+    const plain = new Error("boom")
+
+    const e1 = OnErr(plain, { a: 1 })
+    const f1 = e1.f
+
+    const e2 = OnErr(e1, { b: 2 })
+    const f2 = e2.f
+
+    expect(typeof f1).to.be("function")
+    expect(f2).to.be(f1)  // same closure
+  })
+
+  it("preserves existing err.f value in original when wrapping plain Error", function () {
+    const plain = new Error("boom")
+    plain.f = "some value"
+
+    const e = OnErr(plain, { a: 1 })
+
+    expect(typeof e.f).to.be("function")
+    expect(e.original["err.f"]).to.be("some value")
+  })
+
 })
 
 describe("safe props protection", function () {
