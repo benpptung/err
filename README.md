@@ -32,11 +32,22 @@ This library handles three things:
 |-----------|-----------|------------|----------|
 | **message_history** | How the error bubbled up | Add with `.m()` | append |
 | **context_dict** | State at each layer for debugging | Pass as 2nd parameter | merge, old wins |
-| **error_flags** | Flags for program logic | Pass as 3rd parameter | merge, new wins |
+| **flag_dict** | Flags for program logic | Pass as 3rd parameter | merge, new wins |
 
 **`context_dict`** — for debugging. Any context you need, as key-value pairs.
 
-**`error_flags`** — for coding. Only use it when the caller needs `if (err.code === ...)` checks. Don't write it just for the sake of writing.
+**`flag_dict`** — for coding. Only use it when the caller needs `if (err.code === ...)` checks. Don't write it just for the sake of writing.
+
+```js
+// No context needed, just a flag for the caller to check
+throw Err('rate limit exceeded', null, { code: 'E_RATE_LIMIT' })
+
+// Caller can then:
+if (err.code === 'E_RATE_LIMIT') {
+  await sleep(1000)
+  retry()
+}
+```
 
 ### Flat, not chained
 
@@ -46,13 +57,13 @@ This library takes a **flat** approach — all three dimensions accumulate into 
 
 - `msgs[]` — one array, read top to bottom
 - `original{}` — one object, all context merged
-- `error_flags` — directly on `err`, latest values ready for checks
+- `flag_dict` — directly on `err`, latest values ready for checks
 
 **Trade-off:** flat means possible key conflicts when merging. Each dimension handles this differently:
 
 - **message_history** — no conflict, just **append**
 - **context_dict** — **old wins**, because the context closer to the error source is more valuable for debugging
-- **error_flags** — **new wins**, because the caller may need to update flags for branching logic
+- **flag_dict** — **new wins**, because the caller may need to update flags for branching logic
 
 When you `console.log(err)`, everything is right there. No recursion needed.
 
@@ -169,7 +180,7 @@ Final `msgs`:
 
 ## API
 
-### `Err(message, [context_dict], [error_flags])`
+### `Err(message, [context_dict], [flag_dict])`
 
 Creates an enhanced `Error`.
 
@@ -177,7 +188,7 @@ Creates an enhanced `Error`.
 |-----------|------|-------------|
 | `message` | `string` | Error message |
 | `context_dict` | `object` | Debugging context (key-value pairs) |
-| `error_flags` | `object` | Rarely needed. Only when caller checks `err.code` |
+| `flag_dict` | `object` | Rarely needed. Only when caller checks `err.code` |
 
 **`context_dict` must be an object** — it's a map of key-value pairs, not just values:
 
@@ -193,7 +204,7 @@ throw Err('load failed', file)
 
 Returns: `Error` with `msgs`, `original`, and `.m()` method.
 
-### `OnErr(err, [context_dict], [error_flags])`
+### `OnErr(err, [context_dict], [flag_dict])`
 
 Wraps/enhances an existing error.
 
@@ -201,7 +212,7 @@ Wraps/enhances an existing error.
 |-----------|------|-------------|
 | `err` | `any` | The error to wrap (will be converted to Err) |
 | `context_dict` | `object` | Additional context to merge (key-value pairs) |
-| `error_flags` | `object` | Rarely needed. Only when caller checks `err.code` |
+| `flag_dict` | `object` | Rarely needed. Only when caller checks `err.code` |
 
 Returns: The same error instance, enhanced.
 
@@ -223,7 +234,7 @@ throw OnErr(e, { file }).m('load failed')
 
 ## Protected Properties
 
-These properties cannot be overwritten via `error_flags`:
+These properties cannot be overwritten via `flag_dict`:
 
 | Property | Reason |
 |----------|--------|

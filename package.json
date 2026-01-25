@@ -1,7 +1,7 @@
 {
   "name": "err",
   "version": "1.1.1",
-  "description": "Enhanced Error with message history, context accumulation, and error flags — flat, not chained, designed for logging.",
+  "description": "Enhanced Error with message history, context dict, and flag dict — flat, not chained, designed for logging.",
   "type": "module",
   "author": "Ben P.P. Tung",
   "license": "MIT",
@@ -22,6 +22,9 @@
   },  
   "keywords": [
     "error",
+    "err",
+    "Err",
+    "OnErr",
     "error-handling",
     "message-history",
     "context",
