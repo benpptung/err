@@ -38,17 +38,6 @@ This library handles three things:
 
 **`flag_dict`** — for coding. Only use it when the caller needs `if (err.code === ...)` checks. Don't write it just for the sake of writing.
 
-```js
-// No context needed, just a flag for the caller to check
-throw Err('rate limit exceeded', null, { code: 'E_RATE_LIMIT' })
-
-// Caller can then:
-if (err.code === 'E_RATE_LIMIT') {
-  await sleep(1000)
-  retry()
-}
-```
-
 ### Flat, not chained
 
 ES2022 `cause` creates a **linked chain** — each layer wraps the previous error. To see the full picture, you need to recursively walk through `err.cause.cause.cause...`. Context is scattered.
@@ -203,6 +192,19 @@ throw Err('load failed', file)
 ```
 
 Returns: `Error` with `msgs`, `original`, and `.m()` method.
+
+**Using `flag_dict`** — when you need a flag but no context:
+
+```js
+// No context needed, just a flag for the caller to check
+throw Err('rate limit exceeded', null, { code: 'E_RATE_LIMIT' })
+
+// Caller can then:
+if (err.code === 'E_RATE_LIMIT') {
+  await sleep(1000)
+  retry()
+}
+```
 
 ### `OnErr(err, [context_dict], [flag_dict])`
 
