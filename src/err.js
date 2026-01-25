@@ -1,13 +1,13 @@
 /**
  *
  * @param {string|undefined} msg
- * @param {object} [original]
- * @param {object} [props]
+ * @param {object} [context_dict]
+ * @param {object} [flag_dict]
  * @returns {Error & { msgs: string[], original: object }}
  */
-function Err(msg, original, props) {
+function Err(msg, context_dict, flag_dict) {
 
-  original = Object(original) === original ? original : {}
+  context_dict = Object(context_dict) === context_dict ? context_dict : {}
 
   var er = new Error(msg)
 
@@ -19,42 +19,42 @@ function Err(msg, original, props) {
 
   er.m = bind_message_setter(er)
 
-  er.original = Object.assign({}, original)
+  er.original = Object.assign({}, context_dict)
 
-  // safe props
-  var safe_props = build_safe_props(props)
-  Object.assign(er, safe_props)
+  // flag_dict
+  var safe_flags = build_safe_flags(flag_dict)
+  Object.assign(er, safe_flags)
 
   return er
 }
 
 /**
- * Wrap/enhance an existing error with additional context and props.
+ * Wrap/enhance an existing error with additional context and flag_dict.
  *
  * @param {any} err
- * @param {object} [original]
- * @param {object} [props]
+ * @param {object} [context_dict]
+ * @param {object} [flag_dict]
  * @returns {Error & { msgs: string[], original: object }}
  */
-function OnErr(err, original, props) {
+function OnErr(err, context_dict, flag_dict) {
 
-  original = Object(original) === original ? original : {}
+  context_dict = Object(context_dict) === context_dict ? context_dict : {}
 
   // ensure Error instance
   if (!(err instanceof Error)) {
 
-    var err_props = {}
+    var err_flags = {}
 
     // best-effort: keep original's own enumerable props if it's an object
     if (Object(err) === err) {
-      Object.assign(err_props, err)
+      Object.assign(err_flags, err)
     }
 
     err = new Error('Unknown error created by OnErr')
-    Object.assign(err, err_props)
+    Object.assign(err, err_flags)
   }
 
-  // ensure msgs 
+  // ensure msgs
   if (!Array.isArray(err.msgs)) {
     err.msgs = []
     if (typeof err.message === "string" && err.message.length) {
@@ -62,51 +62,51 @@ function OnErr(err, original, props) {
     }
   }
 
-  // ensure original
+  // ensure err.original
   if (!err.original || Object(err.original) !== err.original) {
     err.original = {}
   }
 
-  // merge original: old wins, new fills holes
-  err.original = Object.assign({}, original, err.original)
+  // merge context_dict: old wins, new fills holes
+  err.original = Object.assign({}, context_dict, err.original)
 
   // ensure err.m is function
   if (typeof err.m !== 'function') {
-    if (err.hasOwnProperty('m')) err.original['err.m'] = err.m // reserve the err.m    
+    if (err.hasOwnProperty('m')) err.original['err.m'] = err.m // reserve the err.m
     err.m = bind_message_setter(err)
   }
 
 
-  // merge safe props
-  var safe_props = build_safe_props(props)
-  Object.assign(err, safe_props)
+  // merge flag_dict
+  var safe_flags = build_safe_flags(flag_dict)
+  Object.assign(err, safe_flags)
 
   return err
 }
 
 /**
- * Build safe props that won't overwrite core Error/Err properties.
+ * Build safe flags that won't overwrite core Error/Err properties.
  *
- * @param {object} [props]
+ * @param {object} [flag_dict]
  * @returns {object}
  */
-function build_safe_props(props) {
+function build_safe_flags(flag_dict) {
 
-  props = Object(props) === props ? props : {}
+  flag_dict = Object(flag_dict) === flag_dict ? flag_dict : {}
 
-  var safe_props = Object.assign({}, props)
+  var safe_flags = Object.assign({}, flag_dict)
 
-  // banned props to overwrite
-  delete safe_props.name
-  delete safe_props.message
-  delete safe_props.stack
-  delete safe_props.cause
-  delete safe_props.original
-  delete safe_props.response
-  delete safe_props.msgs
-  delete safe_props.m
+  // banned flags to overwrite
+  delete safe_flags.name
+  delete safe_flags.message
+  delete safe_flags.stack
+  delete safe_flags.cause
+  delete safe_flags.original
+  delete safe_flags.response
+  delete safe_flags.msgs
+  delete safe_flags.m
 
-  return safe_props
+  return safe_flags
 }
 
 export { Err, OnErr }
