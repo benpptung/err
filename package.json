@@ -33,7 +33,8 @@
     "logging",
     "debugging",
     "flat",
-    "rethrow"
+    "rethrow",
+    "error-wrapper"
   ],
   "types": "./src/err.d.ts"
 }

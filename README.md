@@ -2,7 +2,7 @@
 
 A minimal, environment-agnostic enhancement to JavaScript's native `Error`.
 
-`Err` provides a simple way to attach **runtime context**,
+`err` provides a simple way to attach **runtime context**,
 **human-controlled message breadcrumbs**, and **error flags for program logic**
 (like `err.code`), while preserving the behavior, simplicity,
 and semantics of a standard `Error`.
