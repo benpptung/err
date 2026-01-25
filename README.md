@@ -175,7 +175,7 @@ Creates an enhanced `Error`.
 |-----------|------|-------------|
 | `message` | `string` | Error message |
 | `context_dict` | `object` | Debugging context (key-value pairs) |
-| `flag_dict` | `object` | Rarely needed. Only when caller checks `err.code` |
+| `flag_dict` | `object \| string` | Rarely needed. Only when caller checks `err.code` |
 
 **`context_dict` must be an object** — it's a map of key-value pairs, not just values:
 
@@ -204,6 +204,20 @@ if (err.code === 'E_RATE_LIMIT') {
 }
 ```
 
+**Key-mirror shorthand** — pass a string instead of `{ key: 'key' }`:
+
+```js
+// These are equivalent:
+throw Err('rate limit exceeded', null, { E_RATE_LIMIT: 'E_RATE_LIMIT' })
+throw Err('rate limit exceeded', null, 'E_RATE_LIMIT')
+
+// Caller can then:
+if (err.E_RATE_LIMIT) {
+  await sleep(1000)
+  retry()
+}
+```
+
 ### `OnErr(err, [context_dict], [flag_dict])`
 
 Wraps/enhances an existing error.
@@ -212,7 +226,7 @@ Wraps/enhances an existing error.
 |-----------|------|-------------|
 | `err` | `any` | The error to wrap (will be converted to Err) |
 | `context_dict` | `object` | Additional context to merge (key-value pairs) |
-| `flag_dict` | `object` | Rarely needed. Only when caller checks `err.code` |
+| `flag_dict` | `object \| string` | Rarely needed. Only when caller checks `err.code` |
 
 Returns: The same error instance, enhanced.
 
@@ -230,6 +244,39 @@ Returns: The error instance (for chaining).
 throw OnErr(e, { file }).m('load failed')
 ```
 
+### `.f(flag_dict)`
+
+Attaches flags to the error. Same interface as the `flag_dict` parameter in `Err()` and `OnErr()`.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `flag_dict` | `object \| string` | Flags to attach (or key-mirror string) |
+
+Returns: The error instance (for chaining).
+
+```js
+throw OnErr(e).f('E_TIMEOUT')
+throw OnErr(e).f({ code: 'E_TIMEOUT', retry: true })
+```
+
+Most of the time, passing `flag_dict` directly to `Err()` or `OnErr()` is sufficient. Use `.f()` when you need to add flags in a wrapper that doesn't accept `flag_dict`.
+
+### `.c(context_dict)`
+
+Merges context into `err.original`. Same interface as the `context_dict` parameter in `Err()` and `OnErr()`.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `context_dict` | `object` | Context to merge (old wins) |
+
+Returns: The error instance (for chaining).
+
+```js
+throw OnErr(e).c({ userId, file })
+```
+
+Most of the time, passing `context_dict` directly to `Err()` or `OnErr()` is sufficient. Use `.c()` when you need to add context in a wrapper that doesn't accept `context_dict`.
+
 ---
 
 ## Protected Properties
@@ -239,7 +286,7 @@ These properties cannot be overwritten via `flag_dict`:
 | Property | Reason |
 |----------|--------|
 | `name`, `message`, `stack`, `cause` | Standard Error properties |
-| `msgs`, `original`, `m` | Core functionality of this library |
+| `msgs`, `original`, `m`, `f`, `c` | Core functionality of this library |
 | `response` | Protected for compatibility with HTTP libraries (superagent, axios) |
 
 ---

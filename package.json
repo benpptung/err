@@ -36,5 +36,5 @@
     "rethrow",
     "error-wrapper"
   ],
-  "types": "./src/err.d.ts"
+  "types": "./err.d.ts"
 }

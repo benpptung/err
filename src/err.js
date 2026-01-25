@@ -1,9 +1,10 @@
 /**
+ * Create an enhanced Error with context and flags.
  *
  * @param {string|undefined} msg
- * @param {object} [context_dict]
- * @param {object|string} [flag_dict]
- * @returns {Error & { msgs: string[], original: object }}
+ * @param {object} [context_dict] - Debugging context (key-value pairs)
+ * @param {object|string} [flag_dict] - Flags for program logic, or key-mirror string
+ * @returns {Error & { msgs: string[], original: object, m: function, f: function, c: function }}
  */
 function Err(msg, context_dict, flag_dict) {
 
@@ -31,12 +32,12 @@ function Err(msg, context_dict, flag_dict) {
 }
 
 /**
- * Wrap/enhance an existing error with additional context and flag_dict.
+ * Wrap/enhance an existing error with additional context and flags.
  *
- * @param {any} err
- * @param {object} [context_dict]
- * @param {object|string} [flag_dict]
- * @returns {Error & { msgs: string[], original: object }}
+ * @param {any} err - The error to wrap (will be converted to Error if needed)
+ * @param {object} [context_dict] - Additional context to merge (old wins)
+ * @param {object|string} [flag_dict] - Flags for program logic, or key-mirror string
+ * @returns {Error & { msgs: string[], original: object, m: function, f: function, c: function }}
  */
 function OnErr(err, context_dict, flag_dict) {
 
@@ -99,7 +100,7 @@ function OnErr(err, context_dict, flag_dict) {
 /**
  * Build safe flags that won't overwrite core Error/Err properties.
  *
- * @param {object} [flag_dict]
+ * @param {object|string} [flag_dict] - Object or key-mirror string
  * @returns {object}
  */
 function build_safe_flags(flag_dict) {

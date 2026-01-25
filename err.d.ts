@@ -11,7 +11,22 @@ export interface ErrObject extends Error {
   original: Record<string, any>;
 
   /**
-   * Any additional safe properties passed via `props`.
+   * Append a message to msgs[].
+   */
+  m(message: string): this;
+
+  /**
+   * Attach flags to the error. Same as the flag_dict parameter.
+   */
+  f(flag_dict: Record<string, any> | string): this;
+
+  /**
+   * Merge context into original. Same as the context_dict parameter.
+   */
+  c(context_dict: Record<string, any>): this;
+
+  /**
+   * Any additional safe properties passed via `flag_dict`.
    */
   [key: string]: any;
 }
@@ -21,8 +36,8 @@ export interface ErrObject extends Error {
  */
 export function Err(
   msg?: string,
-  original?: Record<string, any> | any,
-  props?: Record<string, any> | any
+  context_dict?: Record<string, any>,
+  flag_dict?: Record<string, any> | string
 ): ErrObject;
 
 /**
@@ -30,6 +45,6 @@ export function Err(
  */
 export function OnErr(
   err: any,
-  original?: Record<string, any> | any,
-  props?: Record<string, any> | any
+  context_dict?: Record<string, any>,
+  flag_dict?: Record<string, any> | string
 ): ErrObject;
