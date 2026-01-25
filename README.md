@@ -17,9 +17,7 @@ you see everything in one place, not scattered across nested layers.
 ## Installation
 
 ```sh
-npm install benpptung/err
-# or
-pnpm add benpptung/err
+pnpm add @lvigil/err
 ```
 
 ---
@@ -63,7 +61,7 @@ When you `console.log(err)`, everything is right there. No recursion needed.
 ### Create an error
 
 ```js
-import { Err } from 'err'
+import { Err } from '@lvigil/err'
 
 throw Err('Invalid config', { config })
 ```
@@ -73,7 +71,7 @@ throw Err('Invalid config', { config })
 One line — context, message, done:
 
 ```js
-import { OnErr } from 'err'
+import { OnErr } from '@lvigil/err'
 
 catch (e) {
   throw OnErr(e, { userId, file }).m('Failed to load user data')
@@ -87,7 +85,7 @@ catch (e) {
 ### Creating an error
 
 ```js
-import { Err } from 'err'
+import { Err } from '@lvigil/err'
 
 throw Err('invalid payload format', { payload })
 ```
@@ -106,7 +104,7 @@ Result:
 ### Enhancing an error during rethrows
 
 ```js
-import { Err, OnErr } from 'err'
+import { Err, OnErr } from '@lvigil/err'
 
 function loadPayload(file) {
   try {

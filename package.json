@@ -1,5 +1,5 @@
 {
-  "name": "err",
+  "name": "@lvigil/err",
   "version": "1.2.0",
   "description": "Enhanced Error with message history, context dict, and flag dict — flat, not chained, designed for logging.",
   "type": "module",
