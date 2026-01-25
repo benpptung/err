@@ -296,7 +296,7 @@ npm run example-onerr   # This library's flat approach
 **OnErr flat** — 1 stack, all context merged:
 
 ```log
-[16:58:56.394] ERROR (onerr-flat): onerr flat example
+[16:58:56.394] ERROR (onerr-flat): OnErr flat example
     err: {
       "message": "ECONNREFUSED",
       "stack":

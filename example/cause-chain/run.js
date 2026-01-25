@@ -4,7 +4,8 @@ import { handleRequest } from './api-handler.js'
 
 try {
   handleRequest({ userId: 123, token: 'abc' })
-} catch (err) {
+}
+catch (err) {
   const log = {
     level: 50,
     time: Date.now(),
@@ -31,5 +32,5 @@ try {
       } : undefined
     }
   }
-  console.log(JSON.stringify(log))
+  console.log(JSON.stringify(log)) // eslint-disable-line 
 }

@@ -6,7 +6,8 @@ import { connect } from './db.js'
 export function findUser(userId) {
   try {
     connect('127.0.0.1', 3306)
-  } catch (err) {
+  }
+  catch (err) {
     throw OnErr(err, { userId }).m('Cannot find user')
   }
 }
