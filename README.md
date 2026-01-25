@@ -246,6 +246,86 @@ These properties cannot be overwritten via `flag_dict`:
 
 ---
 
+## Example: cause chain vs flat
+
+Run the examples to see the difference:
+
+```sh
+npm run example-cause   # ES2022 cause chain
+npm run example-onerr   # This library's flat approach
+```
+
+**cause chain** — 4 layers = 4 nested stacks, mostly redundant:
+
+```log
+[16:57:39.242] ERROR (cause-chain): cause chain example
+    err: {
+      "message": "Request failed",
+      "stack":
+          Error: Request failed
+              at handleRequest (example/cause-chain/api-handler.js:9:11)
+              at run.js:6:3
+      "cause": {
+        "message": "Authentication failed",
+        "stack":
+            Error: Authentication failed
+                at authenticate (example/cause-chain/auth-service.js:9:11)
+                at handleRequest (example/cause-chain/api-handler.js:7:5)
+                at run.js:6:3
+        "cause": {
+          "message": "Cannot find user 123",
+          "stack":
+              Error: Cannot find user 123
+                  at findUser (example/cause-chain/user-repo.js:9:11)
+                  at authenticate ...
+                  at handleRequest ...
+          "cause": {
+            "message": "ECONNREFUSED 127.0.0.1:3306",
+            "stack":
+                Error: ECONNREFUSED 127.0.0.1:3306
+                    at connect (example/cause-chain/db.js:4:9)
+                    at findUser ...
+                    at authenticate ...
+                    at handleRequest ...
+          }
+        }
+      }
+    }
+```
+
+**OnErr flat** — 1 stack, all context merged:
+
+```log
+[16:58:56.394] ERROR (onerr-flat): onerr flat example
+    err: {
+      "message": "ECONNREFUSED",
+      "stack":
+          Error: ECONNREFUSED
+              at connect (example/onerr-flat/db.js:6:9)
+              at findUser (example/onerr-flat/user-repo.js:8:5)
+              at authenticate (example/onerr-flat/auth-service.js:8:5)
+              at handleRequest (example/onerr-flat/api-handler.js:8:5)
+              at run.js:6:3
+      "msgs": [
+        "ECONNREFUSED",
+        "Cannot find user",
+        "Authentication failed",
+        "Request failed"
+      ],
+      "original": {
+        "endpoint": "/api/auth",
+        "token": "abc",
+        "userId": 123,
+        "host": "127.0.0.1",
+        "port": 3306
+      }
+    }
+```
+
+Same information, half the noise. Context tells you everything at a glance.
+
+---
+
 ## Philosophy
 
 This library does **not** replace JavaScript's error system.

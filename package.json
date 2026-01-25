@@ -13,7 +13,9 @@
     ".": "./src/err.js"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "example-cause": "node example/cause-chain/run.js | npx pino-pretty",
+    "example-onerr": "node example/onerr-flat/run.js | npx pino-pretty"
   },
   "devDependencies": {
     "eslint": "9.39.1",
