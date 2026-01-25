@@ -246,12 +246,12 @@ describe("Err.f()", function () {
     expect(e.response).to.be(undefined)
   })
 
-  it("ignores non-object input", function () {
+  it("ignores non-object and non-string input", function () {
     const e = Err("fail")
     e.f(null)
     e.f(undefined)
-    e.f("string")
     e.f(123)
+    e.f([])
 
     // should not throw, and err should remain intact
     expect(e.message).to.be("fail")
@@ -321,6 +321,205 @@ describe("OnErr.f() binding", function () {
 
 })
 
+describe("Err.c()", function () {
+
+  it("attaches context_dict to original and returns the same err", function () {
+    const e = Err("fail")
+    const result = e.c({ user: "bob", file: "x.json" })
+
+    expect(result).to.be(e)
+    expect(e.original).to.eql({ user: "bob", file: "x.json" })
+  })
+
+  it("behaves the same as Err(msg, context_dict)", function () {
+    const e1 = Err("fail", { a: 1, b: 2 })
+    const e2 = Err("fail").c({ a: 1, b: 2 })
+
+    expect(e1.original).to.eql(e2.original)
+  })
+
+  it("old context wins when keys conflict (same as OnErr)", function () {
+    const e = Err("fail", { a: 1 })
+    e.c({ a: 999, b: 2 })
+
+    expect(e.original.a).to.be(1)   // old wins
+    expect(e.original.b).to.be(2)   // new fills hole
+  })
+
+  it("supports chaining multiple .c() calls", function () {
+    const e = Err("fail")
+      .c({ a: 1 })
+      .c({ b: 2 })
+      .c({ c: 3 })
+
+    expect(e.original).to.eql({ a: 1, b: 2, c: 3 })
+  })
+
+  it("earlier .c() wins when keys conflict across chains", function () {
+    const e = Err("fail")
+      .c({ key: "first" })
+      .c({ key: "second" })
+
+    expect(e.original.key).to.be("first")
+  })
+
+  it("supports chaining with .m() and .f()", function () {
+    const e = Err("initial")
+      .c({ step: 1 })
+      .m("second message")
+      .f({ code: "E_X" })
+      .c({ step: 2, file: "x.json" })  // step: 2 ignored, step: 1 wins
+
+    expect(e.msgs).to.eql(["initial", "second message"])
+    expect(e.code).to.be("E_X")
+    expect(e.original).to.eql({ step: 1, file: "x.json" })
+  })
+
+  it("ignores non-object input", function () {
+    const e = Err("fail", { a: 1 })
+    e.c(null)
+    e.c(undefined)
+    e.c("string")
+    e.c(123)
+
+    // should not throw, original should remain intact
+    expect(e.original).to.eql({ a: 1 })
+  })
+
+})
+
+describe("OnErr.c()", function () {
+
+  it("works after wrapping with OnErr", function () {
+    const e1 = Err("initial", { a: 1 })
+    const e2 = OnErr(e1, { b: 2 }).c({ c: 3 })
+
+    expect(e2).to.be(e1)
+    expect(e2.original).to.eql({ a: 1, b: 2, c: 3 })
+  })
+
+  it("behaves the same as OnErr(er, context_dict)", function () {
+    const base1 = Err("fail", { a: 1 })
+    const base2 = Err("fail", { a: 1 })
+
+    const e1 = OnErr(base1, { b: 2, c: 3 })
+    const e2 = OnErr(base2).c({ b: 2, c: 3 })
+
+    expect(e1.original).to.eql(e2.original)
+  })
+
+  it("old context wins when adding via .c() after OnErr", function () {
+    const e1 = Err("fail", { a: 1 })
+    const e2 = OnErr(e1, { b: 2 })
+    e2.c({ a: 999, b: 888, c: 3 })
+
+    expect(e2.original.a).to.be(1)   // oldest wins
+    expect(e2.original.b).to.be(2)   // OnErr context wins over .c()
+    expect(e2.original.c).to.be(3)   // new fills hole
+  })
+
+  it("works when wrapping a plain Error", function () {
+    const plain = new Error("boom")
+    const e = OnErr(plain).c({ file: "x.json" })
+
+    expect(e.original).to.eql({ file: "x.json" })
+    expect(typeof e.c).to.be("function")
+  })
+
+})
+
+describe("OnErr.c() binding", function () {
+
+  it("binds c only once, even after multiple OnErr calls", function () {
+    const e1 = Err("fail")
+    const first_c = e1.c
+
+    const e2 = OnErr(e1, { step: 1 })
+    const second_c = e2.c
+
+    const e3 = OnErr(e2, { step: 2 })
+    const third_c = e3.c
+
+    // all must be same function reference
+    expect(second_c).to.be(first_c)
+    expect(third_c).to.be(first_c)
+  })
+
+  it("binds c when error was plain Error, but only once", function () {
+    const plain = new Error("boom")
+
+    const e1 = OnErr(plain, { a: 1 })
+    const c1 = e1.c
+
+    const e2 = OnErr(e1, { b: 2 })
+    const c2 = e2.c
+
+    expect(typeof c1).to.be("function")
+    expect(c2).to.be(c1)  // same closure
+  })
+
+  it("preserves existing err.c value in original when wrapping plain Error", function () {
+    const plain = new Error("boom")
+    plain.c = "some value"
+
+    const e = OnErr(plain, { a: 1 })
+
+    expect(typeof e.c).to.be("function")
+    expect(e.original["err.c"]).to.be("some value")
+  })
+
+})
+
+describe("string flag_dict (key-mirror)", function () {
+
+  it("Err accepts string flag_dict and creates key-mirror", function () {
+    const e = Err("fail", { user: "bob" }, "ERR_RATE_LIMIT")
+
+    expect(e.ERR_RATE_LIMIT).to.be("ERR_RATE_LIMIT")
+  })
+
+  it("OnErr accepts string flag_dict and creates key-mirror", function () {
+    const e1 = Err("fail")
+    const e2 = OnErr(e1, { step: 1 }, "ERR_AUTH_FAILED")
+
+    expect(e2).to.be(e1)
+    expect(e2.ERR_AUTH_FAILED).to.be("ERR_AUTH_FAILED")
+  })
+
+  it(".f() accepts string and creates key-mirror", function () {
+    const e = Err("fail")
+    const result = e.f("ERR_TIMEOUT")
+
+    expect(result).to.be(e)
+    expect(e.ERR_TIMEOUT).to.be("ERR_TIMEOUT")
+  })
+
+  it("supports chaining with string and object flags", function () {
+    const e = Err("fail")
+      .f("ERR_NETWORK")
+      .f({ retry: true })
+      .f("ERR_TIMEOUT")
+
+    expect(e.ERR_NETWORK).to.be("ERR_NETWORK")
+    expect(e.ERR_TIMEOUT).to.be("ERR_TIMEOUT")
+    expect(e.retry).to.be(true)
+  })
+
+  it("ignores empty string", function () {
+    const e = Err("fail", null, "")
+    const keys = Object.keys(e).filter(k => k === "")
+
+    expect(keys).to.have.length(0)
+  })
+
+  it("string flag does not overwrite core props", function () {
+    const e = Err("fail", null, "message")
+
+    expect(e.message).to.be("fail")  // not overwritten
+  })
+
+})
+
 describe("safe props protection", function () {
 
   it("does NOT allow overwriting core props via Err props", function () {
@@ -330,6 +529,8 @@ describe("safe props protection", function () {
       original: { fake: true },
       msgs: ["fake"],
       m: "not a function",
+      f: "not a function",
+      c: "not a function",
       response: "fake",
       name: "NewError",
       cause: "fake"
@@ -338,6 +539,8 @@ describe("safe props protection", function () {
     expect(e.message).to.be("x")          // preserved
     expect(e.msgs).to.eql(["x"])          // preserved
     expect(typeof e.m).to.be("function")  // preserved
+    expect(typeof e.f).to.be("function")  // preserved
+    expect(typeof e.c).to.be("function")  // preserved
     expect(e.original).to.eql({})         // preserved
     expect(e.name).to.be("Error")         // native
     expect(e.stack).to.be.a("string")     // native
@@ -352,6 +555,8 @@ describe("safe props protection", function () {
       stack: "fake",
       msgs: ["bad"],
       m: "danger",
+      f: "danger",
+      c: "danger",
       original: { c: 3 },
       name: "Overwritten",
       response: "bad-response"
@@ -360,6 +565,8 @@ describe("safe props protection", function () {
     expect(e.message).to.be("base")
     expect(e.msgs).to.eql(["base"])
     expect(typeof e.m).to.be("function")
+    expect(typeof e.f).to.be("function")
+    expect(typeof e.c).to.be("function")
     expect(e.original).to.eql({ b: 2, a: 1 })
     expect(e.name).to.be("Error")
     expect(e.response).to.be(undefined)

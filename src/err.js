@@ -2,7 +2,7 @@
  *
  * @param {string|undefined} msg
  * @param {object} [context_dict]
- * @param {object} [flag_dict]
+ * @param {object|string} [flag_dict]
  * @returns {Error & { msgs: string[], original: object }}
  */
 function Err(msg, context_dict, flag_dict) {
@@ -19,6 +19,7 @@ function Err(msg, context_dict, flag_dict) {
 
   er.m = bind_message_setter(er)
   er.f = bind_flag_setter(er)
+  er.c = bind_context_setter(er)
 
   er.original = Object.assign({}, context_dict)
 
@@ -34,7 +35,7 @@ function Err(msg, context_dict, flag_dict) {
  *
  * @param {any} err
  * @param {object} [context_dict]
- * @param {object} [flag_dict]
+ * @param {object|string} [flag_dict]
  * @returns {Error & { msgs: string[], original: object }}
  */
 function OnErr(err, context_dict, flag_dict) {
@@ -82,6 +83,11 @@ function OnErr(err, context_dict, flag_dict) {
     err.f = bind_flag_setter(err)
   }
 
+  if (typeof err.c !== 'function') {
+    if (err.hasOwnProperty('c')) err.original['err.c'] = err.c
+    err.c = bind_context_setter(err)
+  }
+
 
   // merge flag_dict
   var safe_flags = build_safe_flags(flag_dict)
@@ -98,6 +104,10 @@ function OnErr(err, context_dict, flag_dict) {
  */
 function build_safe_flags(flag_dict) {
 
+  if (typeof flag_dict === 'string' && flag_dict.length) {
+    flag_dict = { [flag_dict]: flag_dict }
+  }
+
   flag_dict = Object(flag_dict) === flag_dict ? flag_dict : {}
 
   var safe_flags = Object.assign({}, flag_dict)
@@ -112,6 +122,7 @@ function build_safe_flags(flag_dict) {
   delete safe_flags.msgs
   delete safe_flags.m
   delete safe_flags.f
+  delete safe_flags.c
 
   return safe_flags
 }
@@ -131,5 +142,14 @@ function bind_flag_setter(er) {
   return function(flag_dict) {
     const safe_flags = build_safe_flags(flag_dict)
     return Object.assign(er,safe_flags)
+  }
+}
+
+function bind_context_setter(er) {
+  return function(context_dict) {
+    context_dict = Object(context_dict) === context_dict ? context_dict : {}
+      // merge context_dict: old wins, new fills holes
+    er.original = Object.assign({}, context_dict, er.original)
+    return er
   }
 }
